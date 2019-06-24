@@ -41,7 +41,7 @@ class Layout(BaseLayout):
     def head(self) -> e.Head:
         """Document head."""
 
-        return e.Head()(e.Meta(charset=repr(v)), e.Title()(e._Text("test")))
+        return e.Head()(e.Meta(charset="utf-8"), e.Title()(e._Text("test")))
 
     @property
     def body(self) -> e.Body:
@@ -49,7 +49,7 @@ class Layout(BaseLayout):
 
         return e.Body()(
             e.Div(**{"id": "main"})(
-                e.Form(action=repr(v), method=repr(v))(
+                e.Form(action="/", method="POST")(
                     e.Input("required", **{"name": "test", "type": "text"}),
                     e.Button(**{"type": "submit"})(e._Text("submit")),
                 )
@@ -63,4 +63,5 @@ def test_convert():
     from moodlmth.converter import Converter
 
     result = Converter().convert(raw_html)
+    print(result)
     assert result == expected_result

@@ -172,7 +172,7 @@ class Converter(HTMLParser):
             warnings.warn(f"Tag not found in htmldoom: {tag}", Warning)
             return
 
-        if self.tagmap[tag] != self._currtag.tagname:
+        if tag != "html" and self.tagmap[tag] != self._currtag.tagname:
             warnings.warn(f"Tag was never closed: {self._currtag.tagname}", Warning)
 
         if tag == "title":
