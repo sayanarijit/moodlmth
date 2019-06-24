@@ -59,6 +59,10 @@ class TagLeaf:
         nexttag.parent = self.parent
 
     def __repr__(self) -> str:
+        if self.tagname == "_Text":
+            return repr(self.value)
+        if self.tagname == "_RawText":
+            return f"b{repr(self.value)}"
         return f"e.{self.tagname}{self.tagattrs}({repr(self.value)})"
 
 
@@ -134,7 +138,7 @@ class Converter(HTMLParser):
         if not data.strip():
             return
         if self._currtag.tagname in ["Script", "Style"]:
-            self._currtag.addchild(TagLeaf("_RawHtml", value=data))
+            self._currtag.addchild(TagLeaf("_RawText", value=data))
             return
         self._currtag.addchild(TagLeaf("_Text", value=data))
 
