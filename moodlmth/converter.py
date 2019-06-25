@@ -211,7 +211,7 @@ class Converter(HTMLParser):
 
         prevtag = getattr(elements, self.tagmap[tag])
         if issubclass(prevtag.__wrapped__, elements._LeafTag):
-            self.handle_startendtag(tag, attrs)
+            self.handle_startendtag(tag, "")
             return
 
         self.log.debug(f"Closing composite tag: {tag}")
