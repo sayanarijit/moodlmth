@@ -11,6 +11,7 @@ from keyword import kwlist
 
 import black
 from htmldoom import elements
+from htmlmin import minify
 
 TEMPLATE = '''
 from htmldoom import elements as e
@@ -166,7 +167,6 @@ class Converter(HTMLParser):
         self._currtag.addchild(TagLeaf("_Comment", value=data))
 
     def handle_data(self, data) -> None:
-        data = re.sub(r"^\s+", " ", re.sub(r"\s+$", " ", data))
         if not data:
             return
 
@@ -267,7 +267,7 @@ class Converter(HTMLParser):
         
         raw_html: The raw html text to convert.
         """
-        self.feed(raw_html)
+        self.feed(minify(raw_html, remove_empty_space=True))
         result = self.template.format(
             doctype=self._doctype,
             title=self._title,

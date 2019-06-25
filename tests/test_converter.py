@@ -12,7 +12,7 @@ raw_html = """
                 <button type="submit">submit</button>
             </form>
         </div>
-        <footer>test</footer>
+        <footer> space test </footer>
     </body>
 </html>
 """
@@ -41,39 +41,27 @@ class Layout(BaseLayout):
     def html(self) -> e.HTML:
         """Document HTML."""
         return e.HTML()(
-            " ",
-            e.Head()(" ", e.Meta(charset="utf-8"), " ", self.title, " "),
-            " ",
-            self.body,
-            " ",
+            e.Head()(e.Meta(charset="utf-8"), self.title), self.body
         )
 
     @property
     def head(self) -> e.Head:
         """Document head."""
 
-        return e.Head()(" ", e.Meta(charset="utf-8"), " ", self.title, " ")
+        return e.Head()(e.Meta(charset="utf-8"), self.title)
 
     @property
     def body(self) -> e.Body:
         """Document body."""
 
         return e.Body()(
-            " ",
             e.Div(**{"id": "main"})(
-                " ",
                 e.Form(action="/", method="POST")(
-                    " ",
                     e.Input("required", **{"name": "test", "type": "text"}),
-                    " ",
                     e.Button(**{"type": "submit"})("submit"),
-                    " ",
-                ),
-                " ",
+                )
             ),
-            " ",
-            e.Footer()("test"),
-            " ",
+            e.Footer()(" space test "),
         )
 
 

@@ -18,14 +18,18 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
+
+with open(path.join(here, "requirements.txt"), encoding="utf-8") as f:
+    install_requires = f.read().split()
+
 testing_requires = [
-    "pytest>=4.4.1",
-    "pytest-cov>=2.7.1",
-    "mypy>=0.710",
-    "lxml>=4.3.4",
-    "typecov>=0.2.1",
+    "pytest==4.4.1",
+    "pytest-cov==2.7.1",
+    "mypy==0.710",
+    "lxml==4.3.4",
+    "typecov==0.2.1",
 ]
-dev_requires = testing_requires + ["tox>=3.12.1"]
+dev_requires = testing_requires + ["tox==3.12.1"]
 
 setup(
     name="moodlmth",
@@ -63,7 +67,7 @@ setup(
     packages=find_packages(
         exclude=["contrib", "docs", "tests", "examples", "benchmark"]
     ),
-    install_requires=["requests>=2.22.0", "black>=19.3b0", "htmldoom>=0.2.1<0.3"],
+    install_requires=install_requires,
     extras_require={"testing": testing_requires, "dev": dev_requires},
     entry_points={"console_scripts": ["moodlmth = moodlmth.cli:main"]},
 )
