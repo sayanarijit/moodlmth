@@ -11,4 +11,6 @@ __all__ = [
     "__description__",
     "__version__",
     "__license__",
+    "cli",
+    "converter",
 ]
