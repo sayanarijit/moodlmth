@@ -12,5 +12,5 @@ moodlmth https://google.com
 moodlmth /filepath/index.html -o index.py
 
 # Force conversion
-moodlmth https://en.wikipedia.org/wiki/History_of_the_Internet --force
+moodlmth index.html -o index.py --fast --debug
 ```

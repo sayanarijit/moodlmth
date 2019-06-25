@@ -1,14 +1,16 @@
+import logging
 import os
 import sys
 from argparse import ArgumentError, ArgumentParser, FileType
 
 import requests
 
+from moodlmth import __version__
 from moodlmth.converter import Converter
 
 
 def main():
-    parser = ArgumentParser(__file__)
+    parser = ArgumentParser("htmldoom")
     parser.add_argument("target", help="Target path or URL")
     parser.add_argument(
         "-o",
@@ -19,9 +21,13 @@ def main():
     )
     parser.add_argument(
         "-f",
-        "--force",
+        "--fast",
         action="store_true",
         help="Force python formatting with black's 'fast' mode",
+    )
+    parser.add_argument("--debug", action="store_true", help="Print debug messages")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
     args = parser.parse_args()
@@ -37,7 +43,13 @@ def main():
     if not content:
         raise ValueError("No content found")
 
-    print(Converter().convert(content), file=args.outfile)
+    logger = logging.getLogger(__name__)
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
+
+    converter = Converter(fast=args.fast, logger=logger)
+    result = converter.convert(content)
+    print(result, file=args.outfile)
 
 
 if __name__ == "__main__":

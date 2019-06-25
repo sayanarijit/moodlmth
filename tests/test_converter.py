@@ -35,27 +35,50 @@ class Layout(BaseLayout):
     def title(self) -> e.Title:
         """Document title."""
 
-        return e.Title()(e._Text("test"))
+        return e.Title()("test")
+
+    @property
+    def html(self) -> e.HTML:
+        """Document HTML."""
+        return e.HTML()(
+            " ",
+            e.Head()(" ", e.Meta(charset="utf-8"), " ", self.title, " "),
+            " ",
+            self.body,
+            " ",
+        )
 
     @property
     def head(self) -> e.Head:
         """Document head."""
 
-        return e.Head()(e.Meta(charset="utf-8"), e.Title()(e._Text("test")))
+        return e.Head()(" ", e.Meta(charset="utf-8"), " ", self.title, " ")
 
     @property
     def body(self) -> e.Body:
         """Document body."""
 
         return e.Body()(
+            " ",
             e.Div(**{"id": "main"})(
+                " ",
                 e.Form(action="/", method="POST")(
+                    " ",
                     e.Input("required", **{"name": "test", "type": "text"}),
-                    e.Button(**{"type": "submit"})(e._Text("submit")),
-                )
+                    " ",
+                    e.Button(**{"type": "submit"})("submit"),
+                    " ",
+                ),
+                " ",
             ),
-            e.Footer()(e._Text("test")),
+            " ",
+            e.Footer()("test"),
+            " ",
         )
+
+
+if __name__ == "__main__":
+    print(Layout())
 '''
 
 

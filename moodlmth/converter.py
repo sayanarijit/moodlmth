@@ -1,6 +1,8 @@
 "Performs and conversion."
 
 import builtins
+import logging
+import re
 import sys
 import typing as t
 import warnings
@@ -31,6 +33,11 @@ class Layout(BaseLayout):
         return {title}
 
     @property
+    def html(self) -> e.HTML:
+        """Document HTML."""
+        return {html}
+
+    @property
     def head(self) -> e.Head:
         """Document head."""
 
@@ -41,6 +48,10 @@ class Layout(BaseLayout):
         """Document body."""
 
         return {body}
+
+
+if __name__ == "__main__":
+    print(Layout())
 '''
 
 
@@ -58,18 +69,27 @@ class TagLeaf:
         nexttag.prev = self
         nexttag.parent = self.parent
 
+    def render(self) -> str:
+        return f"e.{self.tagname}{self.tagattrs}({repr(self.value)})"
+
     def __repr__(self) -> str:
+        if self.parent and (
+            self.parent.tagname == "Style" or self.parent.tagname == "Script"
+        ):
+            return repr(self.value)
         if self.tagname == "_Text":
             return repr(self.value)
         if self.tagname == "_RawText":
             return f"b{repr(self.value)}"
-        return f"e.{self.tagname}{self.tagattrs}({repr(self.value)})"
+        return self.render()
 
 
 class TagNode:
-    def __init__(self, tagname: str, tagattrs: str = ""):
-        self.tagname: str = tagname
-        self.tagattrs: str = tagattrs
+    def __init__(
+        self, tagname: t.Optional[str] = None, tagattrs: t.Optional[str] = None
+    ):
+        self.tagname: t.Optional[str] = tagname
+        self.tagattrs: str = tagattrs if tagattrs else ""
         self.children: t.List[t.Union["TagNode", TagTree]] = []
         self.parent: t.Optional["TagNode"] = None
         self.next: t.Optional["TagNode"] = None
@@ -84,10 +104,21 @@ class TagNode:
         self.children.append(childtag)
         childtag.parent = self
 
-    def __repr__(self) -> str:
+    def render(self) -> str:
+        if not self.tagname:
+            return ", ".join(map(repr, self.children))
         if not self.children:
             return f"e.{self.tagname}{self.tagattrs}"
         return f"e.{self.tagname}{self.tagattrs}({', '.join(map(repr, self.children))})"
+
+    def __repr__(self) -> str:
+        if self.tagname == "Title":
+            return "self.title"
+        if self.tagname == "HTML":
+            return "self.html"
+        if self.tagname == "Body":
+            return "self.body"
+        return self.render()
 
 
 class Converter(HTMLParser):
@@ -99,7 +130,7 @@ class Converter(HTMLParser):
         >>> converter.convert("<html><body>Hello</body></html>")
     """
 
-    def __init__(self, force=True) -> None:
+    def __init__(self, fast=False, logger=None) -> None:
         super().__init__(convert_charrefs=True)
         self.template: str = TEMPLATE
         self.reserved_keywords: t.Set[str] = set(dir(builtins) + kwlist)
@@ -107,13 +138,15 @@ class Converter(HTMLParser):
         self.black_file_mode: black.FileMode = black.FileMode(
             target_versions={}, is_pyi=False, line_length=79, string_normalization=True
         )
-        self.force = force
-        self._tagtree: TagNode = TagNode("html")
-        self._currtag: t.Optional[t.TagNode] = self._tagtree
+        self.fast = fast
+        self._tagtree: TagNode = TagNode()
+        self._currtag: t.TagNode = self._tagtree
         self._doctype: t.Optional[str] = None
         self._title: t.Optional[str] = None
+        self._html: t.Optional[str] = None
         self._head: t.Optional[str] = None
         self._body: t.Optional[str] = None
+        self.log = logger if logger else logging.getLogger(__name__)
         self._init_tagmap()
 
     def _init_tagmap(self) -> None:
@@ -130,13 +163,13 @@ class Converter(HTMLParser):
         raise ValueError(f"Unknown declaration: {decl}")
 
     def handle_comment(self, data) -> None:
-        if not data.strip():
-            return
         self._currtag.addchild(TagLeaf("_Comment", value=data))
 
     def handle_data(self, data) -> None:
-        if not data.strip():
+        data = re.sub(r"^\s+", " ", re.sub(r"\s+$", " ", data))
+        if not data:
             return
+
         if self._currtag.tagname in ["Script", "Style"]:
             self._currtag.addchild(TagLeaf("_RawText", value=data))
             return
@@ -145,19 +178,16 @@ class Converter(HTMLParser):
     def handle_startendtag(self, tag, attrs):
         tag = tag.lower()
         if tag not in self.tagmap:
-            warnings.warn(f"Tag not found in htmldoom: {tag}", Warning)
-            return
+            raise ValueError(f"Tag not found in htmldoom: {tag}")
+        self.log.debug(f"Handling leaf tag: {tag}")
         fmt_attrs = self._fmt_attrs(attrs)
         self._currtag.addchild(TagNode(self.tagmap[tag], tagattrs=fmt_attrs))
 
     def handle_starttag(self, tag, attrs):
         tag = tag.lower()
-        if tag == "html":
-            return
 
         if tag not in self.tagmap:
-            warnings.warn(f"Tag not found in htmldoom: {tag}", Warning)
-            return
+            raise ValueError(f"Tag not found in htmldoom: {tag}")
 
         prevtag = getattr(elements, self.tagmap[tag])
 
@@ -165,6 +195,7 @@ class Converter(HTMLParser):
             self.handle_startendtag(tag, attrs)
             return
 
+        self.log.debug(f"Starting composite tag: {tag}")
         tag = tag.lower()
         fmt_attrs = self._fmt_attrs(attrs)
         self._currtag.addchild(TagNode(self.tagmap[tag], tagattrs=fmt_attrs))
@@ -172,37 +203,55 @@ class Converter(HTMLParser):
 
     def handle_endtag(self, tag):
         tag = tag.lower()
-        if not self._currtag or tag not in self.tagmap:
-            warnings.warn(f"Tag not found in htmldoom: {tag}", Warning)
+        if not self._currtag or not self._currtag.parent:
+            raise ValueError(f"Tag closed before starting: {tag}")
+
+        if tag not in self.tagmap:
+            raise ValueError(f"Tag not found in htmldoom: {tag}")
+
+        prevtag = getattr(elements, self.tagmap[tag])
+        if issubclass(prevtag.__wrapped__, elements._LeafTag):
+            self.handle_startendtag(tag, attrs)
             return
 
-        if tag != "html" and self.tagmap[tag] != self._currtag.tagname:
+        self.log.debug(f"Closing composite tag: {tag}")
+        if self.tagmap[tag] != self._currtag.tagname:
             warnings.warn(f"Tag was never closed: {self._currtag.tagname}", Warning)
 
         if tag == "title":
-            self._title = repr(self._currtag)
+            self._title = self._currtag.render()
+        if tag == "html":
+            self._html = self._currtag.render()
         if tag == "head":
-            self._head = repr(self._currtag)
+            self._head = self._currtag.render()
         if tag == "body":
-            self._body = repr(self._currtag)
+            self._body = self._currtag.render()
 
         self._currtag = self._currtag.parent
 
     def _fmt_attrs(self, attrs) -> str:
         _attrs, _props = [], {}
+
+        use_expansion = False
         for k, v in attrs:
+            k = k.lower()
+            if not use_expansion and re.sub(r"[a-z_]", "", k):
+                use_expansion = True
+
             if v is None:
                 _attrs.append(k)
             else:
                 _props[k] = v
 
-        has_reserved_kw = False
-        if len((set(_attrs) | set(_props)) & self.reserved_keywords) > 0:
-            has_reserved_kw = True
+        if (
+            not use_expansion
+            and len((set(_attrs) | set(_props)) & self.reserved_keywords) > 0
+        ):
+            use_expansion = True
 
         fmt_attrs = ", ".join(repr(x) for x in _attrs)
         fmt_props = f"**{_props}" if _props else ""
-        if not has_reserved_kw and _props:
+        if not use_expansion and _props:
             fmt_props = ", ".join(f"{k}={repr(v)}" for k, v in _props.items())
 
         if _attrs and _props:
@@ -220,8 +269,12 @@ class Converter(HTMLParser):
         """
         self.feed(raw_html)
         result = self.template.format(
-            doctype=self._doctype, title=self._title, head=self._head, body=self._body
+            doctype=self._doctype,
+            title=self._title,
+            html=self._html,
+            head=self._head,
+            body=self._body,
         )
         return black.format_file_contents(
-            result, fast=self.force, mode=self.black_file_mode
+            result, fast=self.fast, mode=self.black_file_mode
         )

@@ -63,7 +63,7 @@ setup(
     packages=find_packages(
         exclude=["contrib", "docs", "tests", "examples", "benchmark"]
     ),
-    install_requires=["requests>=2.22.0", "black>=19.3b0", "htmldoom==0.2"],
+    install_requires=["requests>=2.22.0", "black>=19.3b0", "htmldoom>=0.2.1<0.3"],
     extras_require={"testing": testing_requires, "dev": dev_requires},
     entry_points={"console_scripts": ["moodlmth = moodlmth.cli:main"]},
 )
