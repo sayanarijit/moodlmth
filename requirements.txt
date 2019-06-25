@@ -1,4 +1,4 @@
 black==19.3b0
-htmldoom==0.2.1
+htmldoom==0.2.2
 htmlmin==0.1.12
 requests==2.22.0

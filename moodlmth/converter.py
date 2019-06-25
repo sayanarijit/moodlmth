@@ -119,6 +119,8 @@ class TagNode:
             return "self.html"
         if self.tagname == "Body":
             return "self.body"
+        if self.tagname == "Head":
+            return "self.head"
         return self.render()
 
 
@@ -135,7 +137,8 @@ class Converter(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.template: str = TEMPLATE
         self.reserved_keywords: t.Set[str] = set(dir(builtins) + kwlist)
-        self.tagmap: t.Dict[str, str] = {}
+        self.tagnames: t.Dict[str, str] = {}
+        self.tagmap: t.Dict[str, elements._Tag] = {}
         self.black_file_mode: black.FileMode = black.FileMode(
             target_versions={}, is_pyi=False, line_length=79, string_normalization=True
         )
@@ -155,7 +158,10 @@ class Converter(HTMLParser):
             thing: object = getattr(elements, name)
             if not thing or not hasattr(thing, "tagname"):
                 continue
-            self.tagmap[thing.tagname] = thing.__name__
+            while hasattr(thing, "__wrapped__"):
+                thing = thing.__wrapped__
+            self.tagnames[thing.tagname] = thing.__name__
+            self.tagmap[thing.tagname] = thing
 
     def handle_decl(self, decl) -> None:
         if decl.lower().startswith("doctype "):
@@ -177,28 +183,32 @@ class Converter(HTMLParser):
 
     def handle_startendtag(self, tag, attrs):
         tag = tag.lower()
-        if tag not in self.tagmap:
-            raise ValueError(f"Tag not found in htmldoom: {tag}")
         self.log.debug(f"Handling leaf tag: {tag}")
+        if tag not in self.tagmap:
+            warnings.warn(f"Tag not found in htmldoom: {tag}")
+            self.tagnames[tag] = f"_new_adhoc_composite_tag({repr(tag)})"
+            self.tagmap[tag] = elements._new_adhoc_composite_tag(tag)
         fmt_attrs = self._fmt_attrs(attrs)
-        self._currtag.addchild(TagNode(self.tagmap[tag], tagattrs=fmt_attrs))
+        self._currtag.addchild(TagNode(self.tagnames[tag], tagattrs=fmt_attrs))
 
     def handle_starttag(self, tag, attrs):
         tag = tag.lower()
 
         if tag not in self.tagmap:
-            raise ValueError(f"Tag not found in htmldoom: {tag}")
+            warnings.warn(f"Tag not found in htmldoom: {tag}")
+            self.tagnames[tag] = f"_new_adhoc_composite_tag({repr(tag)})"
+            self.tagmap[tag] = elements._new_adhoc_composite_tag(tag)
 
-        prevtag = getattr(elements, self.tagmap[tag])
+        prevtag = self.tagmap[tag]
 
-        if issubclass(prevtag.__wrapped__, elements._LeafTag):
+        if issubclass(prevtag, elements._LeafTag):
             self.handle_startendtag(tag, attrs)
             return
 
         self.log.debug(f"Starting composite tag: {tag}")
         tag = tag.lower()
         fmt_attrs = self._fmt_attrs(attrs)
-        self._currtag.addchild(TagNode(self.tagmap[tag], tagattrs=fmt_attrs))
+        self._currtag.addchild(TagNode(self.tagnames[tag], tagattrs=fmt_attrs))
         self._currtag = self._currtag.children[-1]
 
     def handle_endtag(self, tag):
@@ -206,16 +216,13 @@ class Converter(HTMLParser):
         if not self._currtag or not self._currtag.parent:
             raise ValueError(f"Tag closed before starting: {tag}")
 
-        if tag not in self.tagmap:
-            raise ValueError(f"Tag not found in htmldoom: {tag}")
-
-        prevtag = getattr(elements, self.tagmap[tag])
-        if issubclass(prevtag.__wrapped__, elements._LeafTag):
+        prevtag = self.tagmap[tag]
+        if issubclass(prevtag, elements._LeafTag):
             self.handle_startendtag(tag, "")
             return
 
         self.log.debug(f"Closing composite tag: {tag}")
-        if self.tagmap[tag] != self._currtag.tagname:
+        if self.tagnames[tag] != self._currtag.tagname:
             warnings.warn(f"Tag was never closed: {self._currtag.tagname}", Warning)
 
         if tag == "title":
@@ -234,8 +241,7 @@ class Converter(HTMLParser):
 
         use_expansion = False
         for k, v in attrs:
-            k = k.lower()
-            if not use_expansion and re.sub(r"[a-z_]", "", k):
+            if not use_expansion and re.sub(r"[a-zA-Z_]", "", k):
                 use_expansion = True
 
             if v is None:
