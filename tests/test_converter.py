@@ -40,9 +40,7 @@ class Layout(BaseLayout):
     @property
     def html(self) -> e.HTML:
         """Document HTML."""
-        return e.HTML()(
-            e.Head()(e.Meta(charset="utf-8"), self.title), self.body
-        )
+        return e.HTML()(self.head, self.body)
 
     @property
     def head(self) -> e.Head:
