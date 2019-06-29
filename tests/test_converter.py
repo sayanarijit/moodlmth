@@ -17,55 +17,40 @@ raw_html = """
 </html>
 """
 
-expected_result = '''\
+expected_result = """\
+from htmldoom import render
+from htmldoom import base as b
 from htmldoom import elements as e
-from htmldoom.layouts import BaseLayout
 
 
-class Layout(BaseLayout):
-    """Layout class."""
+doctype = b.doctype("html")
 
-    @property
-    def doctype(self) -> e.DocType:
-        """Document type."""
+title = e.title()("test")
 
-        return e.DocType("html")
+head = e.head()(e.meta(charset="utf-8"), title)
 
-    @property
-    def title(self) -> e.Title:
-        """Document title."""
-
-        return e.Title()("test")
-
-    @property
-    def html(self) -> e.HTML:
-        """Document HTML."""
-        return e.HTML()(self.head, self.body)
-
-    @property
-    def head(self) -> e.Head:
-        """Document head."""
-
-        return e.Head()(e.Meta(charset="utf-8"), self.title)
-
-    @property
-    def body(self) -> e.Body:
-        """Document body."""
-
-        return e.Body()(
-            e.Div(**{"id": "main"})(
-                e.Form(action="/", method="POST")(
-                    e.Input("required", **{"name": "test", "type": "text"}),
-                    e.Button(**{"type": "submit"})("submit"),
-                )
-            ),
-            e.Footer()(" space test "),
+body = e.body()(
+    e.div(id_="main")(
+        e.form(action="/", method="POST")(
+            e.input_("required", name="test", type_="text"),
+            e.button(type_="submit")("submit"),
         )
+    ),
+    e.footer()(" space test "),
+)
+
+html = e.html()(head, body)
+
+document = render(doctype, html)
+
+
+def render():
+    return document
 
 
 if __name__ == "__main__":
-    print(Layout())
-'''
+    print(render())
+"""
 
 
 def test_convert():
