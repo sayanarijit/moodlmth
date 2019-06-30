@@ -18,18 +18,14 @@ raw_html = """
 """
 
 expected_result = """\
-from htmldoom import render
 from htmldoom import base as b
 from htmldoom import elements as e
+from htmldoom import render as _render
+from htmldoom import renders
 
+doctype = _render(b.doctype("html"))
 
-doctype = b.doctype("html")
-
-title = e.title()("test")
-
-head = e.head()(e.meta(charset="utf-8"), title)
-
-body = e.body()(
+contents = _render(
     e.div(id_="main")(
         e.form(action="/", method="POST")(
             e.input_("required", name="test", type_="text"),
@@ -39,17 +35,60 @@ body = e.body()(
     e.footer()(" space test "),
 )
 
-html = e.html()(head, body)
 
-document = render(doctype, html)
+@renders(e.title()("test"))
+def render_title(data: dict) -> dict:
+    return {}
 
 
-def render():
-    return document
+@renders(e.head()(e.meta(charset="utf-8"), "{title}"))
+def render_head(data: dict, title_renderer: callable = render_title) -> dict:
+    return {"title": title_renderer(data=data)}
+
+
+@renders(e.body()("{contents}"))
+def render_body(data: dict) -> None:
+    return {"contents": contents}
+
+
+@renders(e.html()("{head}", "{body}"))
+def render_html(
+    data: dict,
+    title_renderer: callable = render_title,
+    head_renderer: callable = render_head,
+    body_renderer: callable = render_body,
+) -> dict:
+    return {
+        "head": head_renderer(data=data, title_renderer=render_title),
+        "body": body_renderer(data=data),
+    }
+
+
+@renders("{doctype}{html}")
+def render_document(
+    data: dict,
+    title_renderer: callable = render_title,
+    head_renderer: callable = render_head,
+    body_renderer: callable = render_body,
+    html_renderer: callable = render_html,
+) -> dict:
+    return {
+        "doctype": doctype,
+        "html": html_renderer(
+            data=data,
+            title_renderer=title_renderer,
+            head_renderer=head_renderer,
+            body_renderer=body_renderer,
+        ),
+    }
+
+
+def render(data: dict) -> str:
+    return render_document(data=data)
 
 
 if __name__ == "__main__":
-    print(render())
+    print(render({}))
 """
 
 
