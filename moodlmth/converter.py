@@ -33,28 +33,69 @@ LEAF_TAGS = {
 }
 
 TEMPLATE = """
-from htmldoom import render
 from htmldoom import base as b
 from htmldoom import elements as e
+from htmldoom import render as _render
+from htmldoom import renders
+
+doctype = _render({doctype})
+
+contents = _render({body})
 
 
-doctype = {doctype}
+@renders({title})
+def render_title(data: dict) -> dict:
+    return {{}}
 
-title = {title}
 
-head = {head}
+@renders({head})
+def render_head(data: dict, title_renderer: callable = render_title) -> dict:
+    return {{"title": title_renderer(data=data)}}
 
-body = {body}
 
-html = {html}
+@renders(e.body()("{{contents}}"))
+def render_body(data: dict) -> None:
+    return {{'contents': contents}}
 
-document = render(doctype, html)
 
-def render():
-    return document
+@renders({html})
+def render_html(
+    data: dict,
+    title_renderer: callable = render_title,
+    head_renderer: callable = render_head,
+    body_renderer: callable = render_body,
+) -> dict:
+    return {{
+        "head": head_renderer(data=data, title_renderer=render_title),
+        "body": body_renderer(data=data),
+    }}
+
+
+@renders("{{doctype}}{{html}}")
+def render_document(
+    data: dict,
+    title_renderer: callable = render_title,
+    head_renderer: callable = render_head,
+    body_renderer: callable = render_body,
+    html_renderer: callable = render_html,
+) -> dict:
+    return {{
+        "doctype": doctype,
+        "html": html_renderer(
+            data=data,
+            title_renderer=title_renderer,
+            head_renderer=head_renderer,
+            body_renderer=body_renderer,
+        ),
+    }}
+
+
+def render(data: dict) -> str:
+    return render_document(data=data)
+
 
 if __name__ == "__main__":
-    print(render())
+    print(render({{}}))
 """
 
 
@@ -104,7 +145,7 @@ class TagNode:
         childtag.parent = self
 
     def render(self) -> str:
-        if not self.tagname:
+        if not self.tagname or self.tagname == "e.body":
             return ", ".join(map(repr, self.children))
         if not self.children:
             return f"{self.tagname}{self.tagattrs}"
@@ -112,7 +153,7 @@ class TagNode:
 
     def __repr__(self) -> str:
         if self.tagname in ["e.title", "e.html", "e.body", "e.head"]:
-            return f"{self.tagname.lstrip('e.')}"
+            return f'''"{{{self.tagname.lstrip('e.')}}}"'''
         return self.render()
 
 
