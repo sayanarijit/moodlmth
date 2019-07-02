@@ -44,27 +44,27 @@ contents = _render({body})
 
 
 @renders({title})
-def render_title(data: dict) -> dict:
+def render_title(data):
     return {{}}
 
 
 @renders({head})
-def render_head(data: dict, title_renderer: callable = render_title) -> dict:
+def render_head(data, title_renderer=render_title):
     return {{"title": title_renderer(data=data)}}
 
 
 @renders(e.body()("{{contents}}"))
-def render_body(data: dict) -> None:
+def render_body(data) -> None:
     return {{'contents': contents}}
 
 
 @renders({html})
 def render_html(
-    data: dict,
-    title_renderer: callable = render_title,
-    head_renderer: callable = render_head,
-    body_renderer: callable = render_body,
-) -> dict:
+    data,
+    title_renderer=render_title,
+    head_renderer=render_head,
+    body_renderer=render_body,
+):
     return {{
         "head": head_renderer(data=data, title_renderer=render_title),
         "body": body_renderer(data=data),
@@ -73,12 +73,12 @@ def render_html(
 
 @renders("{{doctype}}{{html}}")
 def render_document(
-    data: dict,
-    title_renderer: callable = render_title,
-    head_renderer: callable = render_head,
-    body_renderer: callable = render_body,
-    html_renderer: callable = render_html,
-) -> dict:
+    data,
+    title_renderer=render_title,
+    head_renderer=render_head,
+    body_renderer=render_body,
+    html_renderer=render_html,
+):
     return {{
         "doctype": doctype,
         "html": html_renderer(
@@ -90,7 +90,7 @@ def render_document(
     }}
 
 
-def render(data: dict) -> str:
+def render(data):
     return render_document(data=data)
 
 
@@ -100,10 +100,10 @@ if __name__ == "__main__":
 
 
 class TagLeaf:
-    def __init__(self, tagname: str, tagattrs: str = "", value: str = ""):
-        self.tagname: str = tagname
-        self.tagattrs: str = tagattrs
-        self.value: str = value
+    def __init__(self, tagname, tagattrs="", value=""):
+        self.tagname = tagname
+        self.tagattrs = tagattrs
+        self.value = value
         self.parent: t.Optional["TagNode"] = None
         self.next: t.Optional["TagNode"] = None
         self.prev: t.Optional["TagNode"] = None
@@ -113,10 +113,10 @@ class TagLeaf:
         nexttag.prev = self
         nexttag.parent = self.parent
 
-    def render(self) -> str:
+    def render(self):
         return f"{self.tagname}{self.tagattrs}({repr(self.value)})"
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         if self.tagname == "b.txt":
             return repr(self.value)
         if self.tagname == "b.raw":
@@ -129,7 +129,7 @@ class TagNode:
         self, tagname: t.Optional[str] = None, tagattrs: t.Optional[str] = None
     ):
         self.tagname: t.Optional[str] = tagname
-        self.tagattrs: str = tagattrs if tagattrs else ""
+        self.tagattrs = tagattrs if tagattrs else ""
         self.children: t.List[t.Union["TagNode", TagTree]] = []
         self.parent: t.Optional["TagNode"] = None
         self.next: t.Optional["TagNode"] = None
@@ -144,14 +144,14 @@ class TagNode:
         self.children.append(childtag)
         childtag.parent = self
 
-    def render(self) -> str:
+    def render(self):
         if not self.tagname or self.tagname == "e.body":
             return ", ".join(map(repr, self.children))
         if not self.children:
             return f"{self.tagname}{self.tagattrs}"
         return f"{self.tagname}{self.tagattrs}({', '.join(map(repr, self.children))})"
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         if self.tagname in ["e.title", "e.html", "e.body", "e.head"]:
             return f'''"{{{self.tagname.lstrip('e.')}}}"'''
         return self.render()
@@ -168,7 +168,7 @@ class Converter(HTMLParser):
 
     def __init__(self, fast=False, logger=None) -> None:
         super().__init__(convert_charrefs=True)
-        self.template: str = TEMPLATE
+        self.template = TEMPLATE
         self.reserved_keywords: t.Set[str] = set(dir(builtins) + kwlist)
         self.tagnames: t.Dict[str, str] = {}
         self.tagmap: t.Dict[str, callable] = {}
@@ -262,7 +262,7 @@ class Converter(HTMLParser):
 
         self._currtag = self._currtag.parent
 
-    def _fmt_attrs(self, attrs) -> str:
+    def _fmt_attrs(self, attrs):
         _attrs, _props = [], {}
 
         for k, v in attrs:
@@ -286,7 +286,7 @@ class Converter(HTMLParser):
 
         return f"({fmt_props})"
 
-    def convert(self, raw_html: str) -> str:
+    def convert(self, raw_html):
         """Do the conversion.
         
         raw_html: The raw html text to convert.
