@@ -37,27 +37,27 @@ contents = _render(
 
 
 @renders(e.title()("test"))
-def render_title(data: dict) -> dict:
+def render_title(data):
     return {}
 
 
 @renders(e.head()(e.meta(charset="utf-8"), "{title}"))
-def render_head(data: dict, title_renderer: callable = render_title) -> dict:
+def render_head(data, title_renderer=render_title):
     return {"title": title_renderer(data=data)}
 
 
 @renders(e.body()("{contents}"))
-def render_body(data: dict) -> None:
+def render_body(data) -> None:
     return {"contents": contents}
 
 
 @renders(e.html()("{head}", "{body}"))
 def render_html(
-    data: dict,
-    title_renderer: callable = render_title,
-    head_renderer: callable = render_head,
-    body_renderer: callable = render_body,
-) -> dict:
+    data,
+    title_renderer=render_title,
+    head_renderer=render_head,
+    body_renderer=render_body,
+):
     return {
         "head": head_renderer(data=data, title_renderer=render_title),
         "body": body_renderer(data=data),
@@ -66,12 +66,12 @@ def render_html(
 
 @renders("{doctype}{html}")
 def render_document(
-    data: dict,
-    title_renderer: callable = render_title,
-    head_renderer: callable = render_head,
-    body_renderer: callable = render_body,
-    html_renderer: callable = render_html,
-) -> dict:
+    data,
+    title_renderer=render_title,
+    head_renderer=render_head,
+    body_renderer=render_body,
+    html_renderer=render_html,
+):
     return {
         "doctype": doctype,
         "html": html_renderer(
@@ -83,7 +83,7 @@ def render_document(
     }
 
 
-def render(data: dict) -> str:
+def render(data):
     return render_document(data=data)
 
 
