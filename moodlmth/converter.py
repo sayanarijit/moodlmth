@@ -154,7 +154,7 @@ class TagNode:
     def __repr__(self):
         if self.tagname in ["e.title", "e.html", "e.body", "e.head"]:
             return f'''"{{{self.tagname.lstrip('e.')}}}"'''
-        return self.render()
+        return self.render().replace("{", "{{").replace("}", "}}")
 
 
 class Converter(HTMLParser):

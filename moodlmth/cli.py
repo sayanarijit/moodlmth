@@ -33,7 +33,9 @@ def main():
     args = parser.parse_args()
     content = ""
     if args.target.startswith("http://") or args.target.startswith("https://"):
-        content = requests.get(args.target).text
+        resp = requests.get(args.target)
+        resp.raise_for_status()
+        content = resp.text
     elif os.path.exists(args.target):
         with open(args.target) as f:
             content = f.read()
