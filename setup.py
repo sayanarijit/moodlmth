@@ -42,6 +42,7 @@ setup(
     author_email=__email__,
     license=__license__,
     py_modules=["moodlmth"],
+    zip_safe=False,
     classifiers=[
         # How mature is this project? Common values are
         #   3 - Alpha
