@@ -108,11 +108,6 @@ class TagLeaf:
         self.next: t.Optional["TagNode"] = None
         self.prev: t.Optional["TagNode"] = None
 
-    def addnext(self, nexttag: "TagNode") -> None:
-        self.next = nexttag
-        nexttag.prev = self
-        nexttag.parent = self.parent
-
     def render(self):
         return f"{self.tagname}{self.tagattrs}({repr(self.value)})"
 
@@ -134,11 +129,6 @@ class TagNode:
         self.parent: t.Optional["TagNode"] = None
         self.next: t.Optional["TagNode"] = None
         self.prev: t.Optional["TagNode"] = None
-
-    def addnext(self, nexttag: "TagNode") -> None:
-        self.next = nexttag
-        nexttag.prev = self
-        nexttag.parent = self.parent
 
     def addchild(self, childtag: "TagNode") -> None:
         self.children.append(childtag)
@@ -197,13 +187,13 @@ class Converter(HTMLParser):
         if decl.lower().startswith("doctype "):
             self._doctype = f"b.doctype({repr(decl[8:])})"
             return
-        raise ValueError(f"Unknown declaration: {decl}")
+        raise ValueError(f"Unknown declaration: {decl}")  # pragma: nocover
 
     def handle_comment(self, data) -> None:
         self._currtag.addchild(TagLeaf("b.comment", value=data))
 
     def handle_data(self, data) -> None:
-        if not data:
+        if not data:  # pragma: nocover
             return
         if self._currtag.tagname in ["e.script", "e.style", "e.textarea"]:
             self._currtag.addchild(TagLeaf("b.raw", value=data))
@@ -215,8 +205,8 @@ class Converter(HTMLParser):
         self.log.debug(f"Handling leaf tag: {tag}")
         if tag not in self.tagmap:
             warnings.warn(f"Tag not found in htmldoom: {tag}")
-            self.tagnames[tag] = f"b.composite_tag({repr(tag)})"
-            self.tagmap[tag] = elements.composite_tag(tag)
+            self.tagnames[tag] = f"b.leaf_tag({repr(tag)})"
+            self.tagmap[tag] = elements.leaf_tag(tag)
         fmt_attrs = self._fmt_attrs(attrs)
         self._currtag.addchild(TagNode(self.tagnames[tag], tagattrs=fmt_attrs))
 
@@ -242,10 +232,6 @@ class Converter(HTMLParser):
         tag = tag.lower()
         if not self._currtag or not self._currtag.parent:
             raise ValueError(f"Tag closed before starting: {tag}")
-
-        if tag in LEAF_TAGS:
-            self.handle_startendtag(tag, {})
-            return
 
         self.log.debug(f"Closing composite tag: {tag}")
         if self.tagnames[tag] != self._currtag.tagname:
