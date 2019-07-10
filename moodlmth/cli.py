@@ -10,7 +10,7 @@ from moodlmth.converter import Converter
 
 
 def main():
-    parser = ArgumentParser("htmldoom")
+    parser = ArgumentParser("moodlmth")
     parser.add_argument("target", help="Target path or URL")
     parser.add_argument(
         "-o",
