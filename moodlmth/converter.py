@@ -144,7 +144,7 @@ class TagNode:
     def __repr__(self):
         if self.tagname in ["e.title", "e.html", "e.body", "e.head"]:
             return f'''"{{{self.tagname.lstrip('e.')}}}"'''
-        return self.render().replace("{", "{{").replace("}", "}}")
+        return self.render()
 
 
 class Converter(HTMLParser):
@@ -165,14 +165,14 @@ class Converter(HTMLParser):
         self.black_file_mode: black.FileMode = black.FileMode(
             target_versions={}, is_pyi=False, line_length=79, string_normalization=True
         )
-        self.fast = fast
+        self.fast: bool = fast
         self._tagtree: TagNode = TagNode()
-        self._currtag: t.TagNode = self._tagtree
-        self._doctype: t.Optional[str] = None
-        self._title: t.Optional[str] = None
-        self._html: t.Optional[str] = None
-        self._head: t.Optional[str] = None
-        self._body: t.Optional[str] = None
+        self._currtag: TagNode = self._tagtree
+        self._doctype: str = ""
+        self._title: str = ""
+        self._html: str = ""
+        self._head: str = ""
+        self._body: str = ""
         self.log = logger if logger else logging.getLogger(__name__)
         self._init_tagmap()
 
@@ -280,9 +280,14 @@ class Converter(HTMLParser):
         self.feed(minify(raw_html, remove_empty_space=True))
         result = self.template.format(
             doctype=self._doctype,
-            title=self._title,
-            html=self._html,
-            head=self._head,
+            title=self._title.replace("{", "{{").replace("}", "}}"),
+            head=self._head.replace("{", "{{")
+            .replace("}", "}}")
+            .replace('"{{title}}"', '"{title}"'),
+            html=self._html.replace("{", "{{")
+            .replace("}", "}}")
+            .replace('"{{head}}"', '"{head}"')
+            .replace('"{{body}}"', '"{body}"'),
             body=self._body,
         )
         return black.format_file_contents(

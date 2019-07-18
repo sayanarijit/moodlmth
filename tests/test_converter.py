@@ -8,6 +8,7 @@ raw_html = """
     <head>
         <meta charset="utf-8" />
         <title>test</title>
+        <script>{}</script>
     </head>
     <body>
         <!-- A comment -->
@@ -23,6 +24,7 @@ raw_html = """
         <footer> space test </footer>
         <script>var x = {a: 1};</script>
     </body>
+    <script>{}</script>
 </html>
 """
 
@@ -46,7 +48,7 @@ contents = _render(
     b.composite_tag("clipboard-copy")(value="x")("Copy Me"),
     b.leaf_tag("countdown")(value="10"),
     e.footer()(" space test "),
-    e.script()(b"var x = {{a: 1}};"),
+    e.script()(b"var x = {a: 1};"),
 )
 
 
@@ -55,7 +57,7 @@ def render_title(data):
     return {}
 
 
-@renders(e.head()(e.meta(charset="utf-8"), "{title}"))
+@renders(e.head()(e.meta(charset="utf-8"), "{title}", e.script()(b"{{}}")))
 def render_head(data, title_renderer=render_title):
     return {"title": title_renderer(data=data)}
 
@@ -65,7 +67,7 @@ def render_body(data) -> None:
     return {"contents": contents}
 
 
-@renders(e.html()("{head}", "{body}"))
+@renders(e.html()("{head}", "{body}", e.script()(b"{{}}")))
 def render_html(
     data,
     title_renderer=render_title,
