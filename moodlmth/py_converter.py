@@ -10,9 +10,9 @@ from html.parser import HTMLParser
 from keyword import kwlist
 
 import black
-from htmldoom import elements
 from htmlmin import minify
 
+from htmldoom import elements
 from moodlmth.const import LEAF_TAGS
 from moodlmth.protocols import PConverter
 
@@ -22,60 +22,42 @@ from htmldoom import elements as e
 from htmldoom import render as _render
 from htmldoom import renders
 
-doctype = _render({doctype})
-
-contents = _render({body})
+doctype = {doctype}
 
 
 @renders({title})
-def render_title(data):
+def title(data):
     return {{}}
 
 
 @renders({head})
-def render_head(data, title_renderer=render_title):
-    return {{"title": title_renderer(data=data)}}
+def head(data):
+    return {{"title": title(data)}}
 
 
-@renders(e.body()("{{contents}}"))
-def render_body(data) -> None:
-    return {{'contents': contents}}
+@renders(e.body()({body}))
+def body(data):
+    return {{}}
 
 
 @renders({html})
-def render_html(
-    data,
-    title_renderer=render_title,
-    head_renderer=render_head,
-    body_renderer=render_body,
-):
+def html(data):
     return {{
-        "head": head_renderer(data=data, title_renderer=render_title),
-        "body": body_renderer(data=data),
+        "head": head(data=data),
+        "body": body(data=data),
     }}
 
 
 @renders("{{doctype}}{{html}}")
-def render_document(
-    data,
-    title_renderer=render_title,
-    head_renderer=render_head,
-    body_renderer=render_body,
-    html_renderer=render_html,
-):
+def document(data):
     return {{
         "doctype": doctype,
-        "html": html_renderer(
-            data=data,
-            title_renderer=title_renderer,
-            head_renderer=head_renderer,
-            body_renderer=body_renderer,
-        ),
+        "html": html(data=data),
     }}
 
 
 def render(data):
-    return render_document(data=data)
+    return _render(document(data=data))
 
 
 if __name__ == "__main__":
@@ -119,8 +101,6 @@ class TagNode:
         childtag.parent = self
 
     def render(self):
-        if not self.tagname or self.tagname == "e.body":
-            return ", ".join(map(repr, self.children))
         if not self.children:
             return f"{self.tagname}{self.tagattrs}"
         return f"{self.tagname}{self.tagattrs}({', '.join(map(repr, self.children))})"
@@ -152,7 +132,7 @@ class Converter(HTMLParser, PConverter):
         self.fast: bool = fast
         self._tagtree: TagNode = TagNode()
         self._currtag: TagNode = self._tagtree
-        self._doctype: str = ""
+        self._doctype: str = "html"
         self._title: str = ""
         self._html: str = ""
         self._head: str = ""
@@ -272,8 +252,9 @@ class Converter(HTMLParser, PConverter):
             .replace("}", "}}")
             .replace('"{{head}}"', '"{head}"')
             .replace('"{{body}}"', '"{body}"'),
-            body=self._body,
+            body=self._body.replace("{", "{{").replace("}", "}}"),
         )
+
         return black.format_file_contents(
             result, fast=self.fast, mode=self.black_file_mode
         )
