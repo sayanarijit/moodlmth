@@ -15,10 +15,13 @@ What..?
 Usage
 -----
 ```bash
-# Convert web page
+# Convert web page to Python syntax
 moodlmth https://google.com
 
-# Convert HTML file
+# Convert web page into YAML syntax
+moodlmth -s yaml https://google.com
+
+# Convert HTML file and write to another file
 moodlmth /filepath/index.html -o index.py
 
 # Force conversion

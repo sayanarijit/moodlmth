@@ -6,12 +6,21 @@ from argparse import ArgumentError, ArgumentParser, FileType
 import requests
 
 from moodlmth import __version__
-from moodlmth.converter import Converter
+from moodlmth.const import Syntax
+from moodlmth.protocols import PConverter
 
 
-def main():
+def parse_args():
     parser = ArgumentParser("moodlmth")
     parser.add_argument("target", help="Target path or URL")
+    parser.add_argument(
+        "-s",
+        "--syntax",
+        choices=list(Syntax),
+        help="Specify preferred syntax",
+        type=lambda x: Syntax[x],
+        default=Syntax.python.name,
+    )
     parser.add_argument(
         "-o",
         "--outfile",
@@ -30,7 +39,22 @@ def main():
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def load_converter(args, logger: logging.Logger) -> PConverter:
+    if args.syntax is Syntax.python:
+        from moodlmth.py_converter import Converter
+
+        return Converter(fast=args.fast, logger=logger)
+
+    from moodlmth.yaml_converter import Converter
+
+    return Converter(fast=args.fast, logger=logger)
+
+
+def main():
+    args = parse_args()
     content = ""
     if args.target.startswith("http://") or args.target.startswith("https://"):
         resp = requests.get(args.target)
@@ -49,7 +73,7 @@ def main():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    converter = Converter(fast=args.fast, logger=logger)
+    converter = load_converter(args, logger=logger)
     result = converter.convert(content)
     print(result, file=args.outfile)
 
