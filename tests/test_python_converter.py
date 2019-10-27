@@ -108,9 +108,9 @@ if __name__ == "__main__":
 """
 
 
-@patch("moodlmth.converter.warnings.warn")
+@patch("moodlmth.py_converter.warnings.warn")
 def test_convert(mocked_warn):
-    from moodlmth.converter import Converter
+    from moodlmth.py_converter import Converter
 
     result = Converter().convert(raw_html)
     print(result)
@@ -118,22 +118,22 @@ def test_convert(mocked_warn):
 
 
 def test_tagleaf():
-    from moodlmth.converter import TagLeaf
+    from moodlmth.py_converter import TagLeaf
 
     TagLeaf("a").render() == "e.a()"
     repr(TagLeaf("a", value=TagLeaf("a"))) == "e.a()(e.a())"
 
 
 def test_value_err():
-    from moodlmth.converter import Converter
+    from moodlmth.py_converter import Converter
 
     with pytest.raises(ValueError):
         Converter().convert("</div>")
 
 
-@patch("moodlmth.converter.warnings.warn")
+@patch("moodlmth.py_converter.warnings.warn")
 def test_tag_never_closed(mocked_warn):
-    from moodlmth.converter import Converter
+    from moodlmth.py_converter import Converter
 
     Converter().convert("<html><p></html>")
     assert mocked_warn.called

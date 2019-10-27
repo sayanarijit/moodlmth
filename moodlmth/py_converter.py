@@ -10,27 +10,11 @@ from html.parser import HTMLParser
 from keyword import kwlist
 
 import black
+from htmldoom import elements
 from htmlmin import minify
 
-from htmldoom import elements
-
-LEAF_TAGS = {
-    "area",
-    "base",
-    "br",
-    "col",
-    "foreignobject",
-    "hr",
-    "img",
-    "input",
-    "link",
-    "meta",
-    "meter",
-    "param",
-    "source",
-    "track",
-    "wbr",
-}
+from moodlmth.const import LEAF_TAGS
+from moodlmth.protocols import PConverter
 
 TEMPLATE = """
 from htmldoom import base as b
@@ -147,7 +131,7 @@ class TagNode:
         return self.render()
 
 
-class Converter(HTMLParser):
+class Converter(HTMLParser, PConverter):
     """Converts raw HTML into python source code.
     
     Example:
