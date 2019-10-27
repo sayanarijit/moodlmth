@@ -34,73 +34,53 @@ from htmldoom import elements as e
 from htmldoom import render as _render
 from htmldoom import renders
 
-doctype = _render(b.doctype("html"))
-
-contents = _render(
-    b.comment(" A comment "),
-    e.div(id_="main")(
-        e.form(action="/", method="POST")(
-            e.textarea("required"),
-            e.input_("required", name="test", type_="text"),
-            e.button(type_="submit")("submit"),
-        )
-    ),
-    b.composite_tag("clipboard-copy")(value="x")("Copy Me"),
-    b.leaf_tag("countdown")(value="10"),
-    e.footer()(" space test "),
-    e.script()(b"var x = {a: 1};"),
-)
+doctype = b.doctype("html")
 
 
 @renders(e.title()("test"))
-def render_title(data):
+def title(data):
     return {}
 
 
 @renders(e.head()(e.meta(charset="utf-8"), "{title}", e.script()(b"{{}}")))
-def render_head(data, title_renderer=render_title):
-    return {"title": title_renderer(data=data)}
+def head(data):
+    return {"title": title(data)}
 
 
-@renders(e.body()("{contents}"))
-def render_body(data) -> None:
-    return {"contents": contents}
+@renders(
+    e.body()(
+        e.body()(
+            b.comment(" A comment "),
+            e.div(id_="main")(
+                e.form(action="/", method="POST")(
+                    e.textarea("required"),
+                    e.input_("required", name="test", type_="text"),
+                    e.button(type_="submit")("submit"),
+                )
+            ),
+            b.composite_tag("clipboard-copy")(value="x")("Copy Me"),
+            b.leaf_tag("countdown")(value="10"),
+            e.footer()(" space test "),
+            e.script()(b"var x = {{a: 1}};"),
+        )
+    )
+)
+def body(data):
+    return {}
 
 
 @renders(e.html()("{head}", "{body}", e.script()(b"{{}}")))
-def render_html(
-    data,
-    title_renderer=render_title,
-    head_renderer=render_head,
-    body_renderer=render_body,
-):
-    return {
-        "head": head_renderer(data=data, title_renderer=render_title),
-        "body": body_renderer(data=data),
-    }
+def html(data):
+    return {"head": head(data=data), "body": body(data=data)}
 
 
 @renders("{doctype}{html}")
-def render_document(
-    data,
-    title_renderer=render_title,
-    head_renderer=render_head,
-    body_renderer=render_body,
-    html_renderer=render_html,
-):
-    return {
-        "doctype": doctype,
-        "html": html_renderer(
-            data=data,
-            title_renderer=title_renderer,
-            head_renderer=head_renderer,
-            body_renderer=body_renderer,
-        ),
-    }
+def document(data):
+    return {"doctype": doctype, "html": html(data=data)}
 
 
 def render(data):
-    return render_document(data=data)
+    return _render(document(data=data))
 
 
 if __name__ == "__main__":
@@ -114,7 +94,7 @@ def test_convert(mocked_warn):
 
     result = Converter().convert(raw_html)
     print(result)
-    assert result == expected_result
+    assert result.strip() == expected_result.strip()
 
 
 def test_tagleaf():

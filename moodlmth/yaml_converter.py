@@ -14,12 +14,12 @@ from moodlmth.protocols import PConverter
 
 RENDERER_TEMPLATE = """
 @renders(lr(f"{{ASSETS}}/{varname}.txt", static=True))
-def render_{varname}():
+def {varname}():
     return {{}}
 """
 
 TEMPLATE = """
-from htmldoom import doctype, loadraw as lr, renders
+from htmldoom import doctype, render, renders, loadraw as lr
 from htmldoom.yaml_loader import loadyaml as ly
 
 ASSETS = "assets"
@@ -27,12 +27,12 @@ COMPONENTS = f"{{ASSETS}}/components.yml"
 
 {raw_renderers}
 @renders(doctype("{doctype}"), ly(COMPONENTS))
-def render_document():
+def document():
     return {raw_elements}
 
 
 if __name__ == "__main__":
-    print(render_document())
+    print(render(document()))
 """
 
 
@@ -41,7 +41,7 @@ class RendererCall:
     varname: str
 
     def __repr__(self):
-        return f"render_{self.varname}()"
+        return f"{self.varname}()"
 
 
 @dataclass
